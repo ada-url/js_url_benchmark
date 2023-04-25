@@ -19,22 +19,27 @@ if ! $(command -v deno &> /dev/null); then
 fi 
 
 for version in 16 17 18.15 18.16 20; do
-  nvm install $version 
+  nvm install $version --silent
 done
-npm install
+npm install --ignore-scripts --no-audit --no-fund --silent
 current_node_version=$(nvm current)
 
 function cleanup {
-  echo "Restauring node version to $current_node_version"
+  echo "Restoring node version to $current_node_version"
   nvm use $current_node_version
 }
 
 trap cleanup EXIT
+
+# Clear terminal output
+printf "\033c"
+
 deno run -A bench_url.js
+echo ""
 bun run bench_url.js
+echo ""
 for version in 16 17 18.15 18.16 20; do
-  nvm use  $version
+  nvm use $version
   node bench_url.js
+  echo ""
 done
-
-

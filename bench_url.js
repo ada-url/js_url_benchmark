@@ -1,10 +1,11 @@
 "use strict";
 
 import { bench, run } from "mitata";
-import { existsSync, createWriteStream, readFileSync } from "node:fs";
+import { existsSync, createWriteStream, readFileSync, mkdirSync } from "node:fs";
 import axios from "axios";
 
-var urls = [
+const fixturesFolderPath = new URL('fixtures', import.meta.url).pathname;
+const urls = [
   "https://raw.githubusercontent.com/ada-url/url-various-datasets/main/files/linux_files.txt",
   "https://raw.githubusercontent.com/ada-url/url-various-datasets/main/others/kasztp.txt",
   "https://raw.githubusercontent.com/ada-url/url-various-datasets/main/others/userbait.txt",
@@ -13,10 +14,10 @@ var urls = [
 ];
 
 function get_filename(url) {
-  return url.substring(url.lastIndexOf("/") + 1);
+  return `fixtures/${url.substring(url.lastIndexOf("/") + 1)}`;
 }
 
-const downloadFile = async (url) => {
+async function downloadFile(url) {
   const response = await axios({
     method: "GET",
     url: url,
@@ -34,67 +35,41 @@ const downloadFile = async (url) => {
       reject(err);
     });
   });
-};
-
-async function download(urls) {
-  const urls_for_download = urls.filter((url) => {
-    return !existsSync(get_filename(url));
-  });
-  var all_promises = urls_for_download.map((url) => downloadFile(url));
-  return axios.all(all_promises);
 }
 
-await download(urls);
-
-async function download_and_run(filename, url) {
-  if (existsSync(filename)) {
-    run_bench(filename);
-  } else {
-    get(url, (res) => {
-      const file = createWriteStream(filename);
-      res.pipe(file);
-      file.on("error", (err) => {
-        console.error(err);
-      });
-      file.on("finish", async () => {
-        file.close();
-        run_bench(filename);
-      });
-    });
-  }
+if (!existsSync(fixturesFolderPath)) {
+  mkdirSync(fixturesFolderPath)
 }
+const urls_for_download = urls.filter(url => !existsSync(get_filename(url)))
+const all_promises = urls_for_download.map((url) => downloadFile(url));
+await axios.all(all_promises);
 
-var length = 0;
-var bad_url = 0;
-var good_url = 0;
+let length = 0;
+let bad_url = 0;
+let good_url = 0;
 
-async function run_bench(urls) {
-  for (let url of urls) {
-    const filename = get_filename(url);
-    const file_content = readFileSync(filename, "utf-8");
-    const lines = file_content.split("\n");
+for (let url of urls) {
+  const filename = get_filename(url);
+  const file_content = readFileSync(filename, "utf-8");
+  const lines = file_content.split("\n");
 
-    bench(filename, () => {
-      for (var i = 0; i < lines.length; i++) {
-        try {
-          length += new URL(lines[i]).href.length;
-          good_url++;
-        } catch (e) {
-          bad_url++;
-        }
+  bench(filename, () => {
+    for (let i = 0; i < lines.length; i++) {
+      try {
+        length += new URL(lines[i]).href.length;
+        good_url++;
+      } catch (e) {
+        bad_url++;
       }
-      return length;
-    });
-  }
-
-  await run();
+    }
+    return length;
+  });
 }
 
-await run_bench(urls);
+await run();
 
-console.log("Average URL size: " + Math.round(length / good_url) + " bytes");
-console.log(
-  "Ratio of bad URLs: " +
-    Math.round((bad_url / (good_url + bad_url)) * 10000) / 100.0 +
-    "%"
+console.info("Average URL size: " + Math.round(length / good_url) + " bytes");
+console.info(
+  "Ratio of bad URLs:",
+  `${Math.round((bad_url / (good_url + bad_url)) * 10000) / 100}%`,
 );
