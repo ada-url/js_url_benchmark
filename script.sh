@@ -14,8 +14,14 @@ fi
 
 if ! $(command -v deno &> /dev/null); then
   curl -fsSL https://deno.land/x/install/install.sh | sh
+  export DENO_INSTALL="$HOME/.deno"
+  export PATH="$DENO_INSTALL/bin:$PATH"
 fi 
 
+for version in 16 17 18 20; do
+  nvm install $version 
+done
+npm install
 current_node_version=$(nvm current)
 
 function cleanup {
@@ -24,15 +30,11 @@ function cleanup {
 }
 
 trap cleanup EXIT
-
-for version in 16 17 18 20; do
-  nvm install $version  &> /dev/null
-done
-
+deno run -A bench_url.js
+bun run bench_url.js
 for version in 16 17 18 20; do
   nvm use  $version
   node bench_url.js
 done
 
-deno run -A bench_url.js
-bun run bench_url.js
+
