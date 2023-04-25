@@ -2,6 +2,7 @@
 
 import { bench, run } from "mitata";
 import { existsSync, createWriteStream, readFileSync, mkdirSync } from "node:fs";
+import path from "node:path";
 import axios from "axios";
 
 const fixturesFolderPath = new URL('fixtures', import.meta.url).pathname;
@@ -14,7 +15,7 @@ const urls = [
 ];
 
 function get_filename(url) {
-  return `fixtures/${url.substring(url.lastIndexOf("/") + 1)}`;
+  return `fixtures/${path.basename(url)}`;
 }
 
 async function downloadFile(url) {
