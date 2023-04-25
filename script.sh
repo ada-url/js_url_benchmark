@@ -18,7 +18,7 @@ if ! $(command -v deno &> /dev/null); then
   export PATH="$DENO_INSTALL/bin:$PATH"
 fi 
 
-for version in 16 17 18 20; do
+for version in 16 17 18.15 18.16 20; do
   nvm install $version 
 done
 npm install
@@ -32,7 +32,7 @@ function cleanup {
 trap cleanup EXIT
 deno run -A bench_url.js
 bun run bench_url.js
-for version in 16 17 18 20; do
+for version in 16 17 18.15 18.16 20; do
   nvm use  $version
   node bench_url.js
 done
